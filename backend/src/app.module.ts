@@ -36,6 +36,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         synchronize: false,
       }),
     }),
+    InfrastructureModule,
   ],
   controllers: [AppController],
   providers: [AppService],
