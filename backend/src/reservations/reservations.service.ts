@@ -9,6 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { AuthenticatedUser } from '../auth/authenticated-user.interface';
+import { ErrorReason } from '../common/error-reason';
 import {
   PaymentStatus,
   Reservation,
@@ -49,13 +50,13 @@ export class ReservationsService {
       dto.customerId &&
       dto.customerId !== actor.sub
     ) {
-      throw new ForbiddenException('Customers can only reserve for themselves');
+      throw new ForbiddenException(ErrorReason.CustomerOnlyReserveSelf);
     }
 
     const customerId =
       actor.role === UserRole.CUSTOMER ? actor.sub : dto.customerId;
     if (!customerId) {
-      throw new BadRequestException('Admin and agents must provide a customerId');
+      throw new BadRequestException(ErrorReason.AdminAgentMustProvideCustomerId);
     }
 
     const reservation = await this.dataSource.transaction(
@@ -64,11 +65,11 @@ export class ReservationsService {
           id: customerId,
         });
         if (!customer) {
-          throw new NotFoundException('Customer not found');
+          throw new NotFoundException(ErrorReason.CustomerNotFound);
         }
         if (customer.role !== UserRole.CUSTOMER) {
           throw new BadRequestException(
-            'Reservations can only be created for customers',
+            ErrorReason.ReservationsOnlyForCustomers,
           );
         }
 
@@ -77,18 +78,16 @@ export class ReservationsService {
           lock: { mode: 'pessimistic_write' },
         });
         if (!pkg) {
-          throw new NotFoundException('Package not found');
+          throw new NotFoundException(ErrorReason.PackageNotFound);
         }
         if (pkg.availableSlots < dto.travelerCount) {
-          throw new ConflictException('Not enough available slots');
+          throw new ConflictException(ErrorReason.NotEnoughAvailableSlots);
         }
 
         const unitPriceCents = this.amountToCents(pkg.price);
         const totalAmountCents = unitPriceCents * BigInt(dto.travelerCount);
         if (totalAmountCents > 99_999_999_999_999n) {
-          throw new BadRequestException(
-            'Reservation total exceeds the supported amount',
-          );
+          throw new BadRequestException(ErrorReason.ReservationTotalExceedsLimit);
         }
 
         pkg.availableSlots -= dto.travelerCount;
@@ -155,7 +154,7 @@ export class ReservationsService {
   async findOne(id: string, actor: AuthenticatedUser): Promise<Reservation> {
     const reservation = await this.reservations.findOneBy({ id });
     if (!reservation) {
-      throw new NotFoundException('Reservation not found');
+      throw new NotFoundException(ErrorReason.ReservationNotFound);
     }
     this.assertCanAccess(reservation, actor);
     return reservation;
@@ -172,7 +171,7 @@ export class ReservationsService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!reservation) {
-        throw new NotFoundException('Reservation not found');
+        throw new NotFoundException(ErrorReason.ReservationNotFound);
       }
       this.assertCanAccess(reservation, actor);
 
@@ -181,7 +180,7 @@ export class ReservationsService {
         dto.paymentStatus !== PaymentStatus.CANCELLED
       ) {
         throw new ForbiddenException(
-          'Customers may only cancel their reservations',
+          ErrorReason.CustomersMayOnlyCancelReservations,
         );
       }
       if (
@@ -189,7 +188,7 @@ export class ReservationsService {
         reservation.paymentStatus !== PaymentStatus.PENDING
       ) {
         throw new ConflictException(
-          'Only pending reservations can be marked as paid',
+          ErrorReason.OnlyPendingReservationsCanBePaid,
         );
       }
       if (
@@ -197,7 +196,7 @@ export class ReservationsService {
         reservation.paymentStatus !== PaymentStatus.PENDING
       ) {
         throw new ConflictException(
-          'Reservation payment status cannot be reset to pending',
+          ErrorReason.ReservationPaymentStatusCannotResetToPending,
         );
       }
       if (
@@ -205,7 +204,7 @@ export class ReservationsService {
         dto.paymentStatus !== PaymentStatus.CANCELLED
       ) {
         throw new ConflictException(
-          'Cancelled reservations cannot be reopened',
+          ErrorReason.CancelledReservationsCannotBeReopened,
         );
       }
       if (reservation.paymentStatus === dto.paymentStatus) {
@@ -220,13 +219,13 @@ export class ReservationsService {
         });
         if (!pkg) {
           throw new NotFoundException(
-            'Package associated with reservation not found',
+            ErrorReason.PackageAssociatedReservationNotFound,
           );
         }
         const restoredSlots = pkg.availableSlots + reservation.travelerCount;
         if (restoredSlots > pkg.totalCapacity) {
           throw new ConflictException(
-            'Cancellation would exceed package capacity',
+            ErrorReason.CancellationWouldExceedPackageCapacity,
           );
         }
         pkg.availableSlots = restoredSlots;
@@ -255,7 +254,7 @@ export class ReservationsService {
       reservation.customerId !== actor.sub
     ) {
       throw new ForbiddenException(
-        'You cannot access another customer reservation',
+        ErrorReason.YouCannotAccessAnotherCustomerReservation,
       );
     }
   }

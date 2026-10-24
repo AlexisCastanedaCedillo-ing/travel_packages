@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ErrorReason } from '../common/error-reason';
 import { ROLES_KEY } from './roles.decorator';
 import type { AuthenticatedUser } from './authenticated-user.interface';
 import { UserRole } from '../database/entities/user.entity';
@@ -26,9 +27,7 @@ export class RolesGuard implements CanActivate {
       .switchToHttp()
       .getRequest<{ user: AuthenticatedUser }>();
     if (!request.user || !roles.includes(request.user.role)) {
-      throw new ForbiddenException(
-        'You do not have permission to perform this action',
-      );
+      throw new ForbiddenException(ErrorReason.Forbidden);
     }
     return true;
   }

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
+import { ErrorReason } from '../common/error-reason';
 import { UserRole } from '../database/entities/user.entity';
 import type { AuthenticatedUser } from './authenticated-user.interface';
 
@@ -21,7 +22,7 @@ export class JwtAuthGuard implements CanActivate {
     const [scheme, token] = authorization?.split(' ') ?? [];
 
     if (scheme !== 'Bearer' || !token) {
-      throw new UnauthorizedException('A valid bearer token is required');
+      throw new UnauthorizedException(ErrorReason.ValidBearerTokenRequired);
     }
 
     try {
@@ -33,7 +34,7 @@ export class JwtAuthGuard implements CanActivate {
         typeof payload.email !== 'string' ||
         !Object.values(UserRole).includes(payload.role)
       ) {
-        throw new UnauthorizedException('The bearer token payload is invalid');
+        throw new UnauthorizedException(ErrorReason.InvalidBearerTokenPayload);
       }
       request.user = payload;
       return true;
@@ -41,7 +42,7 @@ export class JwtAuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException('The bearer token is invalid or expired');
+      throw new UnauthorizedException(ErrorReason.InvalidOrExpiredBearerToken);
     }
   }
 }

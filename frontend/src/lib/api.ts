@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { translateBackendError } from './errorDictionary';
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
@@ -20,14 +21,19 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message =
+    const backendMessage =
       error?.response?.data?.message ??
-      error?.message ??
-      'Ha ocurrido un error inesperado.';
+      error?.response?.data?.error ??
+      error?.message;
+
+    const translatedMessage = translateBackendError(
+      backendMessage,
+      error?.response?.status,
+    );
 
     return Promise.reject({
       ...error,
-      message,
+      message: translatedMessage,
       status: error?.response?.status,
     });
   },

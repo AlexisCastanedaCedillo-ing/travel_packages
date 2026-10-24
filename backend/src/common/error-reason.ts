@@ -1,0 +1,33 @@
+export const ErrorReason = {
+  InvalidEmailOrPassword: 'InvalidEmailOrPassword',
+  ValidBearerTokenRequired: 'ValidBearerTokenRequired',
+  InvalidBearerTokenPayload: 'InvalidBearerTokenPayload',
+  InvalidOrExpiredBearerToken: 'InvalidOrExpiredBearerToken',
+  Forbidden: 'Forbidden',
+  CustomerOnlyReserveSelf: 'CustomerOnlyReserveSelf',
+  AdminAgentMustProvideCustomerId: 'AdminAgentMustProvideCustomerId',
+  ReservationsOnlyForCustomers: 'ReservationsOnlyForCustomers',
+  CustomerNotFound: 'CustomerNotFound',
+  PackageNotFound: 'PackageNotFound',
+  NotEnoughAvailableSlots: 'NotEnoughAvailableSlots',
+  ReservationTotalExceedsLimit: 'ReservationTotalExceedsLimit',
+  ReservationNotFound: 'ReservationNotFound',
+  CustomersMayOnlyCancelReservations: 'CustomersMayOnlyCancelReservations',
+  OnlyPendingReservationsCanBePaid: 'OnlyPendingReservationsCanBePaid',
+  ReservationPaymentStatusCannotResetToPending: 'ReservationPaymentStatusCannotResetToPending',
+  CancelledReservationsCannotBeReopened: 'CancelledReservationsCannotBeReopened',
+  PackageAssociatedReservationNotFound: 'PackageAssociatedReservationNotFound',
+  CancellationWouldExceedPackageCapacity: 'CancellationWouldExceedPackageCapacity',
+  YouCannotAccessAnotherCustomerReservation: 'YouCannotAccessAnotherCustomerReservation',
+  EndDateBeforeStartDate: 'EndDateBeforeStartDate',
+  TotalCapacityCannotBeLowerThanReserved: 'TotalCapacityCannotBeLowerThanReserved',
+  PackageWithReservationsCannotBeDeleted: 'PackageWithReservationsCannotBeDeleted',
+  Unauthorized: 'Unauthorized',
+  NotFound: 'NotFound',
+  Conflict: 'Conflict',
+  BadRequest: 'BadRequest',
+} as const;
+
+// In a real-world project, this would be defined in a "shared" package or folder.
+// Since the frontend and backend typically do not share a common file in this type of testing,
+// the code is duplicated to avoid spending time setting up a shared workspace.

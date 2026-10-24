@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
 import { Repository } from 'typeorm';
+import { ErrorReason } from '../common/error-reason';
 import { User } from '../database/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 
@@ -20,7 +21,7 @@ export class AuthService {
       where: { email: dto.email.trim().toLowerCase() },
     });
     if (!user || !(await compare(dto.password, user.password))) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException(ErrorReason.InvalidEmailOrPassword);
     }
 
     const accessToken = await this.jwtService.signAsync({

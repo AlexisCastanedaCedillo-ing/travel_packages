@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { ErrorReason } from '../common/error-reason';
 import { Package } from '../database/entities/package.entity';
 import { Reservation } from '../database/entities/reservation.entity';
 import { CreatePackageDto } from './dto/create-package.dto';
@@ -31,7 +32,7 @@ export class PackagesService {
 
   async list(query: ListPackagesDto): Promise<PackageListResult> {
     if (query.startDate && query.endDate && query.endDate < query.startDate) {
-      throw new BadRequestException('End date cannot be before start date');
+      throw new BadRequestException(ErrorReason.EndDateBeforeStartDate);
     }
     const queryKey = JSON.stringify({
       destination: query.destination?.trim().toLowerCase() ?? null,
@@ -85,7 +86,7 @@ export class PackagesService {
   async findOne(id: string): Promise<Package> {
     const result = await this.packages.findOneBy({ id });
     if (!result) {
-      throw new NotFoundException('Package not found');
+      throw new NotFoundException(ErrorReason.PackageNotFound);
     }
     return result;
   }
@@ -114,7 +115,7 @@ export class PackagesService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!pkg) {
-        throw new NotFoundException('Package not found');
+        throw new NotFoundException(ErrorReason.PackageNotFound);
       }
       const startDate = dto.startDate ?? pkg.startDate;
       const endDate = dto.endDate ?? pkg.endDate;
@@ -136,7 +137,7 @@ export class PackagesService {
         const bookedSlots = pkg.totalCapacity - pkg.availableSlots;
         if (dto.totalCapacity < bookedSlots) {
           throw new ConflictException(
-            'Total capacity cannot be lower than already reserved places',
+            ErrorReason.TotalCapacityCannotBeLowerThanReserved,
           );
         }
         pkg.totalCapacity = dto.totalCapacity;
@@ -155,15 +156,13 @@ export class PackagesService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!pkg) {
-        throw new NotFoundException('Package not found');
+        throw new NotFoundException(ErrorReason.PackageNotFound);
       }
       const reservationCount = await manager
         .getRepository(Reservation)
         .countBy({ packageId: id });
       if (reservationCount > 0) {
-        throw new ConflictException(
-          'A package with reservations cannot be deleted',
-        );
+        throw new ConflictException(ErrorReason.PackageWithReservationsCannotBeDeleted);
       }
       await manager.getRepository(Package).remove(pkg);
     });
@@ -172,7 +171,7 @@ export class PackagesService {
 
   private validateDateRange(startDate: string, endDate: string): void {
     if (endDate < startDate) {
-      throw new BadRequestException('End date cannot be before start date');
+      throw new BadRequestException(ErrorReason.EndDateBeforeStartDate);
     }
   }
 }
