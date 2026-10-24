@@ -22,3 +22,8 @@ docker compose exec postgres pg_isready
 ```
 
 El backend NestJS lee `backend\.env` y al iniciar verifica sus conexiones con PostgreSQL, Redis y RabbitMQ. El frontend lee `frontend\.env`; la variable `VITE_API_URL` configura la URL base de Axios.
+
+### API
+
+Con la API iniciada, Swagger está disponible en `http://localhost:3000/docs` y
+`GET http://localhost:3000/health` comprueba PostgreSQL, Redis y RabbitMQ. 

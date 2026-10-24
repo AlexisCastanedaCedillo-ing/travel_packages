@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { validateEnvironment } from './configuration/validate-environment';
+import { HealthModule } from './health/health.module';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -34,12 +35,13 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         password: config.getOrThrow<string>('POSTGRES_PASSWORD'),
         autoLoadEntities: true,
         synchronize: false,
-        migrations: ['dist/migrations/*.js'],
+        migrations: ['dist/database/migrations/*.js'],
         migrationsRun: false,
         logging: ['error', 'schema'],
       }),
     }),
     InfrastructureModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
