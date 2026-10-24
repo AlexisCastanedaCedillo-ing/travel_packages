@@ -27,3 +27,20 @@ El backend NestJS lee `backend\.env` y al iniciar verifica sus conexiones con Po
 
 Con la API iniciada, Swagger está disponible en `http://localhost:3000/docs` y
 `GET http://localhost:3000/health` comprueba PostgreSQL, Redis y RabbitMQ. 
+
+### Seed local
+
+Es necesario declarar las siguientes variables primero en el .env
+
+Llena las siguientes variables antes de correr la seed `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`,
+`SEED_AGENT_EMAIL`, `SEED_AGENT_PASSWORD`, `SEED_CUSTOMER_EMAIL` y
+`SEED_CUSTOMER_PASSWORD` en `backend\.env`. 
+
+IMPORTANTE: Las contraseñas deben tener al menos 12 caracteres. 
+
+Una vez hecho esto desde `travel_packages\backend`, ejecuta:
+
+```powershell
+npm run migration:run
+npm run seed:run
+```
