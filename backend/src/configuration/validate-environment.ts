@@ -19,13 +19,18 @@ const portVariables = [
   'RABBITMQ_PORT',
 ] as const;
 
-export function validateEnvironment(
-  environment: Environment,
-): Environment {
+export function validateEnvironment(environment: Environment): Environment {
   for (const name of requiredVariables) {
     if (typeof environment[name] !== 'string' || !environment[name].trim()) {
       throw new Error(`Missing required environment variable: ${name}`);
     }
+  }
+
+  const jwtSecret = environment.JWT_SECRET;
+  if (typeof jwtSecret !== 'string' || jwtSecret.length < 32) {
+    throw new Error(
+      'Environment variable JWT_SECRET must be at least 32 characters',
+    );
   }
 
   for (const name of portVariables) {

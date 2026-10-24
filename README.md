@@ -26,7 +26,9 @@ El backend NestJS lee `backend\.env` y al iniciar verifica sus conexiones con Po
 ### API
 
 Con la API iniciada, Swagger está disponible en `http://localhost:3000/docs` y
-`GET http://localhost:3000/health` comprueba PostgreSQL, Redis y RabbitMQ. 
+`GET http://localhost:3000/health` comprueba PostgreSQL, Redis y RabbitMQ. Los
+endpoints de paquetes y reservaciones requieren un JWT obtenido con
+`POST /auth/login`.
 
 ### Seed local
 
@@ -44,3 +46,4 @@ Una vez hecho esto desde `travel_packages\backend`, ejecuta:
 npm run migration:run
 npm run seed:run
 ```
+

@@ -6,7 +6,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { validateEnvironment } from './configuration/validate-environment';
+import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
+import { User } from './database/entities/user.entity';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -40,7 +42,11 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         logging: ['error', 'schema'],
       }),
     }),
+    TypeOrmModule.forFeature([
+      User,
+    ]),
     InfrastructureModule,
+    AuthModule,
     HealthModule,
   ],
   controllers: [AppController],
