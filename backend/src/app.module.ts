@@ -8,9 +8,12 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { validateEnvironment } from './configuration/validate-environment';
 import { AuthModule } from './auth/auth.module';
 import { PackagesModule } from './packages/packages.module';
+import { ReservationsModule } from './reservations/reservations.module';
 import { HealthModule } from './health/health.module';
+import { ProcessedNotification } from './database/entities/processed-notification.entity';
 import { User } from './database/entities/user.entity';
 import { Package } from './database/entities/package.entity';
+import { Reservation } from './database/entities/reservation.entity';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -47,10 +50,13 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     TypeOrmModule.forFeature([
       User,
       Package,
+      Reservation,
+      ProcessedNotification,
     ]),
     InfrastructureModule,
     AuthModule,
     PackagesModule,
+    ReservationsModule,
     HealthModule,
   ],
   controllers: [AppController],

@@ -47,3 +47,16 @@ npm run migration:run
 npm run seed:run
 ```
 
+La semilla es idempotente: actualiza las cuentas configuradas y crea los paquetes
+de ejemplo si todavía no existen.
+
+Para ejecutar el worker de notificaciones en otra terminal desde
+`travel_packages\backend`:
+
+```powershell
+npm run start:worker:dev
+```
+
+El worker consume `reserva.creada`, persiste el procesamiento de forma idempotente
+en `processed_notifications`, reintenta hasta tres veces y guarda los mensajes
+que agoten los reintentos en la cola durable `reservation.created.dead`.

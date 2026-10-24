@@ -17,6 +17,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       host: config.getOrThrow<string>('REDIS_HOST'),
       port: config.getOrThrow<number>('REDIS_PORT'),
       lazyConnect: true,
+      commandTimeout: 1000,
     });
     this.client.on('error', (error: Error) => {
       this.logger.error(`Redis connection error: ${error.message}`);
