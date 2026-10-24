@@ -5,6 +5,7 @@ import {
   OneToOne,
   PrimaryColumn,
 } from 'typeorm';
+import type { Relation } from 'typeorm';
 import { Reservation } from './reservation.entity';
 
 @Entity({ name: 'processed_notifications' })
@@ -26,5 +27,5 @@ export class ProcessedNotification {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'reservation_id' })
-  reservation: Reservation;
+  reservation: Relation<Reservation>;
 }

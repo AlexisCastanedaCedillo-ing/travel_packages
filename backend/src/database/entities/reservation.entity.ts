@@ -10,6 +10,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { Relation } from 'typeorm';
 import { Package } from './package.entity';
 import { User } from './user.entity';
 import { ProcessedNotification } from './processed-notification.entity';
@@ -77,7 +78,7 @@ export class Reservation {
     onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'customer_id' })
-  customer: User;
+  customer: Relation<User>;
   @Index('idx_reservations_customer_id')
   @Column({ name: 'customer_id', type: 'uuid', nullable: false })
   customerId: string;
@@ -87,7 +88,7 @@ export class Reservation {
     onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'created_by_id' })
-  createdBy: User;
+  createdBy: Relation<User>;
   @Index('idx_reservations_created_by_id')
   @Column({ name: 'created_by_id', type: 'uuid', nullable: false })
   createdById: string;
@@ -97,7 +98,7 @@ export class Reservation {
     onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'package_id' })
-  package: Package;
+  package: Relation<Package>;
   @Index('idx_reservations_package_id')
   @Column({ name: 'package_id', type: 'uuid', nullable: false })
   packageId: string;
@@ -106,5 +107,5 @@ export class Reservation {
     () => ProcessedNotification,
     (notification) => notification.reservation,
   )
-  processedNotification: ProcessedNotification;
+  processedNotification: Relation<ProcessedNotification>;
 }

@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { Relation } from 'typeorm';
 import { Reservation } from './reservation.entity';
 
 @Entity({ name: 'packages' })
@@ -52,5 +53,5 @@ export class Package {
   updatedAt: Date;
 
   @OneToMany(() => Reservation, (reservation) => reservation.package)
-  reservations: Reservation[];
+  reservations: Relation<Reservation[]>;
 }

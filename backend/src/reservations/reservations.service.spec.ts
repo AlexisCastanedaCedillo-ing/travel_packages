@@ -1,4 +1,5 @@
 import { ConflictException } from '@nestjs/common';
+import { jest } from '@jest/globals';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 import type { AuthenticatedUser } from '../auth/authenticated-user.interface';
 import { Package } from '../database/entities/package.entity';
@@ -32,21 +33,38 @@ describe('ReservationsService', () => {
       reservations: [],
     };
     const packageRepository = {
-      findOne: jest.fn().mockResolvedValue(pkg),
-      save: jest.fn().mockImplementation(async (value: Package) => value),
+      findOne: jest
+        .fn<
+          (options: {
+            where: { id: string };
+            lock: { mode: 'pessimistic_write' };
+          }) => Promise<Package | null>
+        >()
+        .mockResolvedValue(pkg),
+      save: jest
+        .fn<(value: Package) => Promise<Package>>()
+        .mockImplementation(async (value) => value),
     };
     const userRepository = {
-      findOneBy: jest.fn().mockResolvedValue({
-        id: actor.sub,
-        role: UserRole.CUSTOMER,
-      }),
+      findOneBy: jest
+        .fn<
+          (where: { id: string }) => Promise<
+            { id: string; role: UserRole } | null
+          >
+        >()
+        .mockResolvedValue({
+          id: actor.sub,
+          role: UserRole.CUSTOMER,
+        }),
     };
     const reservationRepository = {
       create: jest
-        .fn()
+        .fn<(value: Partial<Reservation>) => Partial<Reservation>>()
         .mockImplementation((value: Partial<Reservation>) => value),
       save: jest
-        .fn()
+        .fn<
+          (value: Partial<Reservation>) => Promise<Partial<Reservation>>
+        >()
         .mockImplementation(async (value: Partial<Reservation>) => ({
           ...value,
           id: '00000000-0000-4000-8000-000000000003',
@@ -72,9 +90,15 @@ describe('ReservationsService', () => {
         ) => operation(manager),
       ),
     } as unknown as DataSource;
-    const cache = { invalidate: jest.fn().mockResolvedValue(undefined) };
+    const cache = {
+      invalidate: jest
+        .fn<PackageCacheService['invalidate']>()
+        .mockResolvedValue(undefined),
+    };
     const rabbitMq = {
-      publishReservationCreated: jest.fn().mockResolvedValue(undefined),
+      publishReservationCreated: jest
+        .fn<RabbitMqService['publishReservationCreated']>()
+        .mockResolvedValue(undefined),
     };
     const service = new ReservationsService(
       {} as Repository<Reservation>,

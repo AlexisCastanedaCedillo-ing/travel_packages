@@ -1,4 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { jest } from '@jest/globals';
 import { hash } from 'bcrypt';
 import type { JwtService } from '@nestjs/jwt';
 import type { Repository } from 'typeorm';
@@ -14,10 +15,14 @@ describe('AuthService', () => {
       password: passwordHash,
       role: UserRole.CUSTOMER,
     } as User;
-    const findOne = jest.fn().mockResolvedValue(user);
+    const findOne = jest
+      .fn<Repository<User>['findOne']>()
+      .mockResolvedValue(user);
     const users = { findOne } as unknown as Repository<User>;
     const jwt = {
-      signAsync: jest.fn().mockResolvedValue('signed-token'),
+      signAsync: jest
+        .fn<JwtService['signAsync']>()
+        .mockResolvedValue('signed-token'),
     };
     const service = new AuthService(users, jwt as unknown as JwtService);
 
@@ -41,9 +46,11 @@ describe('AuthService', () => {
   });
 
   it('does not disclose whether an account exists for invalid credentials', async () => {
-    const findOne = jest.fn().mockResolvedValue(null);
+    const findOne = jest
+      .fn<Repository<User>['findOne']>()
+      .mockResolvedValue(null);
     const users = { findOne } as unknown as Repository<User>;
-    const jwt = { signAsync: jest.fn() };
+    const jwt = { signAsync: jest.fn<JwtService['signAsync']>() };
     const service = new AuthService(users, jwt as unknown as JwtService);
 
     await expect(

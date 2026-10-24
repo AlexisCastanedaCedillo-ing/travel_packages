@@ -5,6 +5,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import type { Relation } from 'typeorm';
 import { Reservation } from './reservation.entity';
 
 export enum UserRole {
@@ -36,8 +37,8 @@ export class User {
   createdAt: Date;
 
   @OneToMany(() => Reservation, (reservation) => reservation.customer)
-  reservationsAsCustomer: Reservation[];
+  reservationsAsCustomer: Relation<Reservation[]>;
 
   @OneToMany(() => Reservation, (reservation) => reservation.createdBy)
-  reservationsCreated: Reservation[];
+  reservationsCreated: Relation<Reservation[]>;
 }
