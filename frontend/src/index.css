@@ -131,13 +131,23 @@ p {
   cursor: wait;
 }
 
-.error-message {
+.error-message,
+.field-error {
   color: #b91c1c;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.error-message {
   background: #fef2f2;
   border: 1px solid #fecaca;
   border-radius: 10px;
   padding: 10px 12px;
-  font-size: 0.94rem;
+}
+
+.field-error {
+  display: block;
+  margin-top: 4px;
 }
 
 .app-shell {
