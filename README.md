@@ -38,7 +38,8 @@ Llena las siguientes variables antes de correr la seed `SEED_ADMIN_EMAIL`, `SEED
 `SEED_AGENT_EMAIL`, `SEED_AGENT_PASSWORD`, `SEED_CUSTOMER_EMAIL` y
 `SEED_CUSTOMER_PASSWORD` en `backend\.env`. 
 
-IMPORTANTE: Las contraseñas deben tener al menos 12 caracteres. 
+IMPORTANTE: Los valores de estos usuarios son solo para las prueba y no ingreses datos reales de una persona.
+Y las contraseñas deben tener al menos 12 caracteres. 
 
 Una vez hecho esto desde `travel_packages\backend`, ejecuta:
 

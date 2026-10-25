@@ -50,7 +50,7 @@ export class AuthRateLimitGuard implements CanActivate {
 
     if (attempts > maxLoginAttempts) {
       throw new HttpException(
-        'Too many login attempts; try again in one minute',
+        ' Demasiados intentos de inicio de sesión. Inténtalo de nuevo más tarde.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

@@ -13,18 +13,22 @@ async function seed(): Promise<void> {
   );
   await dataSource.initialize();
   try {
+    // This seed script is intended for development and testing purposes only. 
+    // It creates default users and travel packages in the database. Please ensure that you do not use real user data 
+    // or sensitive information when running this script in a production environment.
+
     const users = dataSource.getRepository(User);
+    // Create default users with the specified roles and hashed passwords
     await saveUser(users, admin.email, admin.password, UserRole.ADMIN);
     await saveUser(users, agent.email, agent.password, UserRole.AGENT);
     await saveUser(users, customer.email, customer.password, UserRole.CUSTOMER);
 
+    // Create default travel packages with the specified details
     const packages = dataSource.getRepository(Package);
-    const startDate = dateAfterDays(90);
-    const endDate = dateAfterDays(97);
     await savePackage(packages, {
       destination: 'Cancun, Mexico',
-      startDate,
-      endDate,
+      startDate: dateAfterDays(90),
+      endDate: dateAfterDays(97),
       price: '899.00',
       totalCapacity: 25,
     });
@@ -34,6 +38,27 @@ async function seed(): Promise<void> {
       endDate: dateAfterDays(127),
       price: '1099.00',
       totalCapacity: 18,
+    });
+    await savePackage(packages, {
+      destination: 'Rome, Italy',
+      startDate: dateAfterDays(150),
+      endDate: dateAfterDays(157),
+      price: '1299.00',
+      totalCapacity: 20,
+    });
+    await savePackage(packages, {
+      destination: 'Tokyo, Japan',
+      startDate: dateAfterDays(180),
+      endDate: dateAfterDays(187),
+      price: '1499.00',
+      totalCapacity: 15,
+    });
+    await savePackage(packages, {
+      destination: 'Sydney, Australia',
+      startDate: dateAfterDays(210),
+      endDate: dateAfterDays(217),
+      price: '1599.00',
+      totalCapacity: 10,
     });
     console.info('Development users and travel packages were seeded.');
   } finally {
