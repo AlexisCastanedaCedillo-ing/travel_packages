@@ -75,9 +75,14 @@ export function LoginPage() {
             ) : null}
           </label>
 
-          {errors.root ? <p className="error-message">{errors.root.message}</p> : null}
+          {errors.root ? <p className="error-message" role="alert">{errors.root.message}</p> : null}
 
-          <button type="submit" className="primary-button" disabled={isSubmitting}>
+          <button
+            type="submit"
+            className="primary-button"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+          >
             {isSubmitting ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>

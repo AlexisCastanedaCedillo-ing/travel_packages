@@ -29,7 +29,7 @@ export function PackageDetailPage() {
     return (
       <div className="page-state">
         <p className="eyebrow">Detalle</p>
-        <h1>Cargando paquete...</h1>
+        <h1 role="status" aria-live="polite">Cargando paquete...</h1>
       </div>
     );
   }
@@ -39,7 +39,7 @@ export function PackageDetailPage() {
       <div className="page-state">
         <p className="eyebrow">Detalle</p>
         <h1>No se pudo cargar el paquete</h1>
-        <p className="page-description">{error}</p>
+        <p className="page-description" role="alert">{error}</p>
         <Link to="/packages" className="secondary-link">
           Volver a paquetes
         </Link>

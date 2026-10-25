@@ -169,6 +169,17 @@ p {
   margin-top: 4px;
 }
 
+.field-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+input[aria-invalid='true'],
+select[aria-invalid='true'] {
+  border-color: #b91c1c;
+}
+
 .app-shell {
   display: flex;
   width: 100%;

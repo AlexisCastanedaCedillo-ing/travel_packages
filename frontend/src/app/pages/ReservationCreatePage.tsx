@@ -129,9 +129,11 @@ export function ReservationCreatePage() {
           <label>
             <span>Paquete</span>
             <select
+              id="reservation-package"
               value={packageId}
               onChange={(event) => setPackageId(event.target.value)}
               disabled={packagesLoading || packagesError !== null}
+              aria-describedby={packagesError ? 'packages-load-error' : undefined}
               required
             >
               <option value="">Selecciona un paquete</option>
@@ -146,20 +148,26 @@ export function ReservationCreatePage() {
           <label>
             <span>Cantidad de viajeros</span>
             <input
+              id="traveler-count"
               type="number"
               min="1"
               max={selectedPackage?.availableSlots}
               step="1"
               value={travelerCount}
               onChange={(event) => setTravelerCount(Number(event.target.value))}
+              aria-describedby="reservation-traveler-help"
               required
             />
+            <span id="reservation-traveler-help" className="field-hint">
+              No más de {selectedPackage?.availableSlots ?? 0} cupos disponibles.
+            </span>
           </label>
 
           {!isCustomer ? (
             <label>
               <span>ID del cliente</span>
               <input
+                id="reservation-customer-id"
                 type="text"
                 value={customerId}
                 onChange={(event) => setCustomerId(event.target.value)}
@@ -170,14 +178,24 @@ export function ReservationCreatePage() {
           ) : null}
         </div>
 
-        {packagesLoading ? <p className="page-description mt-4">Cargando paquetes...</p> : null}
-        {packagesError ? <p className="error-message mt-4">{packagesError}</p> : null}
+        {packagesLoading ? (
+          <p className="page-description mt-4" role="status" aria-live="polite">
+            Cargando paquetes...
+          </p>
+        ) : null}
+        {packagesError ? (
+          <p id="packages-load-error" className="error-message mt-4" role="alert">
+            {packagesError}
+          </p>
+        ) : null}
         {!packagesLoading && !packagesError && packages.length === 0 ? (
-          <p className="page-description mt-4">No hay paquetes disponibles para reservar.</p>
+          <p className="page-description mt-4" role="status">
+            No hay paquetes disponibles para reservar.
+          </p>
         ) : null}
 
         {selectedPackage ? (
-          <section className="package-detail-card mt-6" aria-label="Resumen del paquete">
+          <section className="package-detail-card mt-6" aria-label="Resumen del paquete" aria-live="polite">
             <div className="detail-row">
               <span className="detail-label">Destino</span>
               <strong>{selectedPackage.destination}</strong>
@@ -201,7 +219,7 @@ export function ReservationCreatePage() {
           </section>
         ) : null}
 
-        {submitError ? <p className="error-message mt-4">{submitError}</p> : null}
+        {submitError ? <p className="error-message mt-4" role="alert">{submitError}</p> : null}
 
         <div className="form-actions">
           <button

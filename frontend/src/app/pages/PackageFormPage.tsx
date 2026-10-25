@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { createPackage, getPackageById, updatePackage } from '../../lib/packages';
@@ -23,6 +23,7 @@ type PackageFormPageProps = {
 export function PackageFormPage({ mode }: PackageFormPageProps) {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [isLoadingPackage, setIsLoadingPackage] = useState(mode === 'edit' && Boolean(id));
 
   const {
     register,
@@ -58,6 +59,8 @@ export function PackageFormPage({ mode }: PackageFormPageProps) {
             : 'No se pudo cargar la información del paquete.';
 
         setError('root', { type: 'server', message });
+      } finally {
+        setIsLoadingPackage(false);
       }
     })();
   }, [id, mode, reset, setError]);
@@ -96,6 +99,13 @@ export function PackageFormPage({ mode }: PackageFormPageProps) {
       <p className="eyebrow">Paquetes</p>
       <h1>{mode === 'create' ? 'Crear paquete' : 'Editar paquete'}</h1>
 
+      {isLoadingPackage ? (
+        <div className="page-state compact-state">
+          <p role="status" aria-live="polite">Cargando información del paquete...</p>
+        </div>
+      ) : null}
+
+      {!isLoadingPackage ? (
       <form
         className="package-form"
         onSubmit={handleSubmit((values) => {
@@ -105,26 +115,45 @@ export function PackageFormPage({ mode }: PackageFormPageProps) {
       >
         <label>
           <span>Destino</span>
-          <input type="text" placeholder="Cancún, México" {...register('destination')} />
+          <input
+            id="destination"
+            type="text"
+            placeholder="Cancún, México"
+            aria-invalid={Boolean(errors.destination)}
+            aria-describedby={errors.destination ? 'destination-error' : undefined}
+            {...register('destination')}
+          />
           {errors.destination?.message ? (
-            <span className="field-error">{String(errors.destination.message)}</span>
+            <span id="destination-error" className="field-error">{String(errors.destination.message)}</span>
           ) : null}
         </label>
 
         <div className="form-grid" style={{ marginTop: '.5rem' }}>
           <label>
             <span>Fecha inicio</span>
-            <input type="date" {...register('startDate')} />
+            <input
+              id="startDate"
+              type="date"
+              aria-invalid={Boolean(errors.startDate)}
+              aria-describedby={errors.startDate ? 'start-date-error' : undefined}
+              {...register('startDate')}
+            />
             {errors.startDate?.message ? (
-              <span className="field-error">{String(errors.startDate.message)}</span>
+              <span id="start-date-error" className="field-error">{String(errors.startDate.message)}</span>
             ) : null}
           </label>
 
           <label>
             <span>Fecha fin</span>
-            <input type="date" {...register('endDate')} />
+            <input
+              id="endDate"
+              type="date"
+              aria-invalid={Boolean(errors.endDate)}
+              aria-describedby={errors.endDate ? 'end-date-error' : undefined}
+              {...register('endDate')}
+            />
             {errors.endDate?.message ? (
-              <span className="field-error">{String(errors.endDate.message)}</span>
+              <span id="end-date-error" className="field-error">{String(errors.endDate.message)}</span>
             ) : null}
           </label>
         </div>
@@ -132,22 +161,37 @@ export function PackageFormPage({ mode }: PackageFormPageProps) {
         <div className="form-grid" style={{ marginTop: '.5rem' }}>
           <label>
             <span>Precio</span>
-            <input type="text" placeholder="899.00" {...register('price')} />
+            <input
+              id="price"
+              type="text"
+              placeholder="899.00"
+              aria-invalid={Boolean(errors.price)}
+              aria-describedby={errors.price ? 'price-error' : undefined}
+              {...register('price')}
+            />
             {errors.price?.message ? (
-              <span className="field-error">{String(errors.price.message)}</span>
+              <span id="price-error" className="field-error">{String(errors.price.message)}</span>
             ) : null}
           </label>
 
           <label>
             <span>Capacidad total</span>
-            <input type="number" min={1} step={1} {...register('totalCapacity')} />
+            <input
+              id="totalCapacity"
+              type="number"
+              min={1}
+              step={1}
+              aria-invalid={Boolean(errors.totalCapacity)}
+              aria-describedby={errors.totalCapacity ? 'capacity-error' : undefined}
+              {...register('totalCapacity')}
+            />
             {errors.totalCapacity?.message ? (
-              <span className="field-error">{String(errors.totalCapacity.message)}</span>
+              <span id="capacity-error" className="field-error">{String(errors.totalCapacity.message)}</span>
             ) : null}
           </label>
         </div>
 
-        {errors.root ? <p className="error-message">{errors.root.message}</p> : null}
+        {errors.root ? <p className="error-message" role="alert">{errors.root.message}</p> : null}
 
         <div className="form-actions">
           <button type="submit" className="primary-button" disabled={isSubmitting}>
@@ -159,6 +203,7 @@ export function PackageFormPage({ mode }: PackageFormPageProps) {
           </Link>
         </div>
       </form>
+      ) : null}
     </div>
   );
 }
