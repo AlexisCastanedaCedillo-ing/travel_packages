@@ -265,7 +265,7 @@ export function PackagesPage() {
         </div>
       ) : null}
 
-      {!isLoading && packages.length > 0 ? (
+      {!isLoading && !error && packages.length > 0 ? (
         <div className="package-grid">
           {packages.map((pkg) => (
             <article key={pkg.id} className="package-card">
@@ -333,7 +333,7 @@ export function PackagesPage() {
         </div>
       ) : null}
 
-      {!isLoading && total > 0 ? (
+      {!isLoading && !error && total > 0 ? (
         <div className="pagination">
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
