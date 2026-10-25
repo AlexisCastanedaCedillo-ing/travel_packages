@@ -6,6 +6,8 @@ import { DashboardPage } from '../pages/DashboardPage';
 import { ForbiddenPage } from '../pages/ForbiddenPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { PackageDetailPage } from '../pages/PackageDetailPage';
+import { PackageFormPage } from '../pages/PackageFormPage';
 import { PackagesPage } from '../pages/PackagesPage';
 import { ReservationsPage } from '../pages/ReservationsPage';
 
@@ -24,6 +26,12 @@ export function AppRouter() {
 
           <Route element={<RoleRoute allowedRoles={['admin', 'agent', 'customer']} />}>
             <Route path="/packages" element={<PackagesPage />} />
+            <Route path="/packages/:id" element={<PackageDetailPage />} />
+          </Route>
+
+          <Route element={<RoleRoute allowedRoles={['admin']} />}>
+            <Route path="/packages/new" element={<PackageFormPage mode="create" />} />
+            <Route path="/packages/:id/edit" element={<PackageFormPage mode="edit" />} />
           </Route>
 
           <Route element={<RoleRoute allowedRoles={['admin', 'agent', 'customer']} />}>
