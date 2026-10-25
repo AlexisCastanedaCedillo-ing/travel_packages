@@ -23,11 +23,16 @@ import { ListReservationsDto } from './dto/list-reservations.dto';
 import { UpdateReservationStatusDto } from './dto/update-reservation-status.dto';
 
 export interface ReservationListResult {
-  data: Reservation[];
+  data: ReservationResponse[];
   total: number;
   page: number;
   pageSize: number;
 }
+
+export type ReservationResponse = Reservation & {
+  destination: string;
+  customerEmail: string;
+};
 
 @Injectable()
 export class ReservationsService {
@@ -132,6 +137,15 @@ export class ReservationsService {
   ): Promise<ReservationListResult> {
     const builder = this.reservations
       .createQueryBuilder('reservation')
+      .leftJoinAndSelect('reservation.customer', 'customer')
+      .leftJoinAndSelect('reservation.package', 'package')
+      .select([
+        'reservation',
+        'customer.id',
+        'customer.email',
+        'package.id',
+        'package.destination',
+      ])
       .where('1 = 1');
     if (actor.role === UserRole.CUSTOMER) {
       builder.where('reservation.customerId = :customerId', {
@@ -148,16 +162,45 @@ export class ReservationsService {
       .skip((query.page - 1) * query.pageSize)
       .take(query.pageSize)
       .getManyAndCount();
-    return { data, total, page: query.page, pageSize: query.pageSize };
+    return {
+      data: data.map((reservation) =>
+        this.toReservationResponse(reservation),
+      ),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
 
-  async findOne(id: string, actor: AuthenticatedUser): Promise<Reservation> {
-    const reservation = await this.reservations.findOneBy({ id });
+  private toReservationResponse(
+    reservation: Reservation,
+  ): ReservationResponse {
+    return Object.assign(reservation, {
+      destination: reservation.package.destination,
+      customerEmail: reservation.customer.email,
+    });
+  }
+
+  async findOne(
+    id: string,
+    actor: AuthenticatedUser,
+  ): Promise<ReservationResponse> {
+    const reservation = await this.reservations.findOne({
+      where: { id },
+      relations: {
+        customer: true,
+        package: true,
+      },
+      select: {
+        customer: { id: true, email: true },
+        package: { id: true, destination: true },
+      },
+    });
     if (!reservation) {
       throw new NotFoundException(ErrorReason.ReservationNotFound);
     }
     this.assertCanAccess(reservation, actor);
-    return reservation;
+    return this.toReservationResponse(reservation);
   }
 
   async updateStatus(
