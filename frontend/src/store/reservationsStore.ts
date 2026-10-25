@@ -14,7 +14,7 @@ function getErrorMessage(error: unknown): string {
     }
   }
 
-  return 'No se pudo cargar la información de las reservas.';
+  return 'No se pudo cargar la información de las reservaciones.';
 }
 
 type ReservationsState = {

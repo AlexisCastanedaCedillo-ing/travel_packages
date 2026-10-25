@@ -8,7 +8,7 @@ export function DashboardPage() {
       <p className="eyebrow">Panel principal</p>
       <h1>Bienvenido{user ? `, ${user.email}` : ''}</h1>
       <p className="page-description">
-        Esta sección queda lista para mostrar el resumen del rol autenticado y los accesos principales.
+        Bienvenido al panel principal.
       </p>
     </div>
   );

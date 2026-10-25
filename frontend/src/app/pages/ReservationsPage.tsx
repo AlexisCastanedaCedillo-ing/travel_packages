@@ -4,6 +4,8 @@ import { getReservationById } from '../../lib/reservations';
 import { useAuthStore } from '../../store/authStore';
 import { useReservationsStore } from '../../store/reservationsStore';
 import type { PaymentStatus, ReservationItem } from '../../types/reservation';
+import { currencyFormatter } from '../../utils/common-functions';
+import { EyeIcon } from '../../utils/icons';
 
 const paymentStatusOptions = ['ALL', 'PENDING', 'PAID', 'CANCELLED'] as const;
 type PaymentStatusFilter = (typeof paymentStatusOptions)[number];
@@ -15,19 +17,6 @@ const paymentStatusLabels: Record<PaymentStatusFilter, string> = {
   CANCELLED: 'Cancelada',
 };
 
-const currencyFormatter = new Intl.NumberFormat('es-ES', {
-  style: 'currency',
-  currency: 'USD',
-});
-
-function EyeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
 
 export function ReservationsPage() {
   const location = useLocation();
@@ -101,14 +90,14 @@ export function ReservationsPage() {
 
   async function handleStatusChange(id: string, nextStatus: PaymentStatus) {
     const label = paymentStatusLabels[nextStatus];
-    if (!window.confirm(`¿Deseas cambiar el estado de la reserva "${id.slice(0, 8)}" a "${label}"?`)) {
+    if (!window.confirm(`¿Deseas cambiar el estado de la reservación "${id.slice(0, 8)}" a "${label}"?`)) {
       return;
     }
 
     setUpdatingReservationId(id);
     try {
       await updateReservationPaymentStatus(id, nextStatus);
-      setSuccessMessage('Estado de la reserva actualizado correctamente.');
+      setSuccessMessage('Estado de la reservación actualizado correctamente.');
       void fetchReservations({
         paymentStatus: paymentStatusFilter === 'ALL' ? undefined : paymentStatusFilter,
         page,
@@ -133,7 +122,7 @@ export function ReservationsPage() {
       setDetailError(
         error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
           ? error.message
-          : 'No se pudo cargar el detalle de la reserva.',
+          : 'No se pudo cargar el detalle de la reservación.',
       );
     } finally {
       setDetailLoading(false);
@@ -161,10 +150,10 @@ export function ReservationsPage() {
 
       <div className="toolbar-row">
         <p className="page-description">
-          {total > 0 ? `Mostrando ${reservations.length} de ${total} reservas.` : 'Consulta de reservas del sistema.'}
+          {total > 0 ? `Mostrando ${reservations.length} de ${total} reservaciones.` : 'Consulta de reservaciones del sistema.'}
         </p>
         <Link to="/reservations/new" className="primary-button link-button">
-          + Crear reserva
+          + Crear reservación
         </Link>
       </div>
 
@@ -190,13 +179,13 @@ export function ReservationsPage() {
 
       {isLoading ? (
         <div className="page-state compact-state">
-          <h1 role="status" aria-live="polite">Cargando reservas...</h1>
+          <h1 role="status" aria-live="polite">Cargando reservaciones...</h1>
         </div>
       ) : null}
 
       {!isLoading && !error && reservations.length === 0 ? (
         <div className="page-state compact-state">
-          <h1>No hay reservas disponibles</h1>
+          <h1>No hay reservaciones disponibles</h1>
           <p className="page-description">No se encontraron resultados con los filtros actuales.</p>
         </div>
       ) : null}
@@ -208,7 +197,7 @@ export function ReservationsPage() {
               <div className="package-card-header">
                 <span
                   className={`package-badge ${reservation.paymentStatus === 'CANCELLED' ? 'reservation-status-cancelled' : reservation.paymentStatus === 'PAID' ? 'reservation-status-paid' : 'reservation-status-pending'}`}
-                  aria-label={`Estado de reserva: ${paymentStatusLabels[reservation.paymentStatus as PaymentStatusFilter] ?? reservation.paymentStatus}`}
+                  aria-label={`Estado de reservación: ${paymentStatusLabels[reservation.paymentStatus as PaymentStatusFilter] ?? reservation.paymentStatus}`}
                 >
                   {paymentStatusLabels[reservation.paymentStatus as PaymentStatusFilter] ?? reservation.paymentStatus}
                 </span>
@@ -273,7 +262,7 @@ export function ReservationsPage() {
                       onClick={() => void handleStatusChange(reservation.id, 'CANCELLED')}
                       disabled={updatingReservationId === reservation.id}
                     >
-                      {updatingReservationId === reservation.id ? 'Actualizando...' : 'Cancelar reserva'}
+                      {updatingReservationId === reservation.id ? 'Actualizando...' : 'Cancelar reservación'}
                     </button>
                   </>
                 ) : null}
@@ -365,12 +354,12 @@ export function ReservationsPage() {
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 id="reservation-detail-title" className="text-2xl font-bold text-slate-900">
-                Detalle de reserva
+                Detalle de reservación
               </h2>
               <button
                 type="button"
                 className="secondary-button"
-                aria-label="Cerrar detalle de reserva"
+                aria-label="Cerrar detalle de reservación"
                 autoFocus
                 onClick={() => setSelectedReservation(null)}
               >

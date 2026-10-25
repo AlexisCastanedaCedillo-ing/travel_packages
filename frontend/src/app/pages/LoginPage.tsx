@@ -5,8 +5,8 @@ import { useAuthStore } from '../../store/authStore';
 import { loginSchema, type LoginFormValues } from '../../lib/validators/auth';
 
 const defaultValues: LoginFormValues = {
-  email: 'admin@example.com',
-  password: 'password123',
+  email: '@example.com',
+  password: '',
 };
 
 export function LoginPage() {
@@ -55,7 +55,7 @@ export function LoginPage() {
             <span>Email</span>
             <input
               type="email"
-              placeholder="correo@ejemplo.com"
+              placeholder="Ingresa tu email"
               autoComplete="email"
               {...register('email')}
             />
@@ -66,7 +66,7 @@ export function LoginPage() {
             <span>Contraseña</span>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="Ingresa tu contraseña"
               autoComplete="current-password"
               {...register('password')}
             />

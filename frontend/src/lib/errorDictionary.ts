@@ -52,7 +52,7 @@ export const errorReasonMessages: Record<ErrorReasonValue, string> = {
   [ErrorReason.OnlyPendingReservationsCanBePaid]: 'Solo las reservaciones pendientes pueden marcarse como pagadas.',
   [ErrorReason.ReservationPaymentStatusCannotResetToPending]: 'El estado de pago no puede volver a pendiente.',
   [ErrorReason.CancelledReservationsCannotBeReopened]: 'Las reservaciones canceladas no pueden reabrirse.',
-  [ErrorReason.PackageAssociatedReservationNotFound]: 'No se encontró el paquete asociado a la reserva.',
+  [ErrorReason.PackageAssociatedReservationNotFound]: 'No se encontró el paquete asociado a la reservación.',
   [ErrorReason.CancellationWouldExceedPackageCapacity]: 'La cancelación excedería la capacidad del paquete.',
   [ErrorReason.YouCannotAccessAnotherCustomerReservation]: 'No puedes acceder a la reservación de otro cliente.',
   [ErrorReason.EndDateBeforeStartDate]: 'La fecha de fin no puede ser anterior a la fecha de inicio.',

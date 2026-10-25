@@ -4,16 +4,7 @@ import { listPackages } from '../../lib/packages';
 import { useAuthStore } from '../../store/authStore';
 import { useReservationsStore } from '../../store/reservationsStore';
 import type { PackageItem } from '../../types/package';
-
-const currencyFormatter = new Intl.NumberFormat('es-ES', {
-  style: 'currency',
-  currency: 'USD',
-});
-
-function amountToCents(amount: string | number): bigint {
-  const [whole = '0', fraction = ''] = String(amount).split('.');
-  return BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0').slice(0, 2));
-}
+import { amountToCents, currencyFormatter } from '../../utils/common-functions';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === 'object' && 'message' in error) {
@@ -94,7 +85,7 @@ export function ReservationCreatePage() {
     }
 
     if (!isCustomer && !customerId.trim()) {
-      setSubmitError('Debes indicar el ID del cliente para crear la reserva.');
+      setSubmitError('Debes indicar el ID del cliente para crear la reservación.');
       return;
     }
 
@@ -110,7 +101,7 @@ export function ReservationCreatePage() {
         state: { successMessage: 'Reserva creada correctamente.' },
       });
     } catch (error) {
-      setSubmitError(getErrorMessage(error, 'No se pudo crear la reserva.'));
+      setSubmitError(getErrorMessage(error, 'No se pudo crear la reservación.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -119,9 +110,9 @@ export function ReservationCreatePage() {
   return (
     <div className="page-header">
       <p className="eyebrow">Reservas</p>
-      <h1>Crear reserva</h1>
+      <h1>Crear reservación</h1>
       <p className="page-description">
-        Selecciona el paquete y la cantidad de viajeros. El total mostrado es informativo; el backend calcula y guarda el monto definitivo.
+        Selecciona el paquete y la cantidad de viajeros. El total mostrado es el cálculo por la cantidad de viajeros.
       </p>
 
       <form className="package-form mt-6" onSubmit={(event) => void handleSubmit(event)}>
@@ -227,7 +218,7 @@ export function ReservationCreatePage() {
             className="primary-button"
             disabled={isSubmitting || packagesLoading || Boolean(packagesError) || !selectedPackage}
           >
-            {isSubmitting ? 'Guardando...' : 'Crear reserva'}
+            {isSubmitting ? 'Guardando...' : 'Crear reservación'}
           </button>
           <Link to="/reservations" className="secondary-link">
             Cancelar
