@@ -52,7 +52,17 @@ export function PackagesPage() {
   const [filters, setFilters] = useState(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
   const [filterError, setFilterError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(() => {
+    if (
+      location.state &&
+      typeof location.state === 'object' &&
+      'successMessage' in location.state
+    ) {
+      return String(location.state.successMessage);
+    }
+
+    return null;
+  });
   const [itemsPerPage, setItemsPerPage] = useState<number>(pageSize);
 
   const hasActiveFilters = useMemo(
@@ -70,17 +80,6 @@ export function PackagesPage() {
 
     return Math.ceil(total / itemsPerPage);
   }, [itemsPerPage, total]);
-
-  useEffect(() => {
-    const stateMessage =
-      location.state && typeof location.state === 'object' && 'successMessage' in location.state
-        ? String(location.state.successMessage)
-        : null;
-
-    if (stateMessage) {
-      setSuccessMessage(stateMessage);
-    }
-  }, [location.state]);
 
   useEffect(() => {
     void fetchPackages({
@@ -172,7 +171,7 @@ export function PackagesPage() {
       <h1>Listado de paquetes</h1>
 
       {successMessage ? (
-        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+        <div role="status" aria-live="polite" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
           {successMessage}
         </div>
       ) : null}
@@ -247,15 +246,15 @@ export function PackagesPage() {
         </div>
       </div>
 
-      {filterError ? <p className="error-message">{filterError}</p> : null}
+      {filterError ? <p className="error-message" role="alert">{filterError}</p> : null}
 
       {isLoading ? (
         <div className="page-state compact-state">
-          <h1>Cargando paquetes...</h1>
+          <h1 role="status" aria-live="polite">Cargando paquetes...</h1>
         </div>
       ) : null}
 
-      {!isLoading && error ? <p className="error-message">{error}</p> : null}
+      {!isLoading && error ? <p className="error-message" role="alert">{error}</p> : null}
 
       {!isLoading && !error && packages.length === 0 ? (
         <div className="page-state compact-state">
@@ -299,7 +298,7 @@ export function PackagesPage() {
               <div className="mt-5 flex items-center justify-end gap-2">
                 <Link
                   to={`/packages/${pkg.id}`}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-blue-200 hover:text-blue-600"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-teal-200 hover:text-teal-700"
                   title="Ver detalle"
                   aria-label="Ver detalle"
                 >
@@ -310,7 +309,7 @@ export function PackagesPage() {
                   <>
                     <Link
                       to={`/packages/${pkg.id}/edit`}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-amber-200 hover:text-amber-600"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-fuchsia-200 hover:text-fuchsia-700"
                       title="Editar paquete"
                       aria-label="Editar paquete"
                     >

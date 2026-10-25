@@ -13,12 +13,22 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">VL</span>
-          <div>
-            <strong>Viajes Lili</strong>
-            <small>{user?.role ?? 'usuario'}</small>
+        <a className="skip-link" href="#main-content">
+          Saltar al contenido
+        </a>
+
+        <div className="sidebar-header">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true">VL</span>
+            <div>
+              <strong>Viajes Lili</strong>
+              <small>{user?.role ?? 'usuario'}</small>
+            </div>
           </div>
+
+          <button type="button" className="logout-button" onClick={logout}>
+            Cerrar sesión
+          </button>
         </div>
 
         <nav className="nav" aria-label="Menú principal">
@@ -34,13 +44,9 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
-
-        <button type="button" className="logout-button" onClick={logout}>
-          Cerrar sesión
-        </button>
       </aside>
 
-      <main className="content-panel">
+      <main id="main-content" className="content-panel" tabIndex={-1}>
         <Outlet />
       </main>
     </div>

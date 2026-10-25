@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { getReservationById } from '../../lib/reservations';
 import { useAuthStore } from '../../store/authStore';
@@ -44,11 +44,23 @@ export function ReservationsPage() {
   } = useReservationsStore();
 
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>('ALL');
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(() => {
+    if (
+      location.state &&
+      typeof location.state === 'object' &&
+      'successMessage' in location.state
+    ) {
+      return String(location.state.successMessage);
+    }
+
+    return null;
+  });
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [updatingReservationId, setUpdatingReservationId] = useState<string | null>(null);
+  const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const wasModalOpenRef = useRef(false);
 
   useEffect(() => {
     void fetchReservations({
@@ -59,17 +71,31 @@ export function ReservationsPage() {
   }, [fetchReservations, pageSize, paymentStatusFilter]);
 
   useEffect(() => {
-    const stateMessage =
-      location.state &&
-      typeof location.state === 'object' &&
-      'successMessage' in location.state
-        ? String(location.state.successMessage)
-        : null;
-
-    if (stateMessage) {
-      setSuccessMessage(stateMessage);
+    const isModalOpen = Boolean(selectedReservation || detailLoading || detailError);
+    if (isModalOpen) {
+      wasModalOpenRef.current = true;
+      return;
     }
-  }, [location.state]);
+
+    if (wasModalOpenRef.current) {
+      wasModalOpenRef.current = false;
+      detailTriggerRef.current?.focus();
+    }
+  }, [detailError, detailLoading, selectedReservation]);
+
+  useEffect(() => {
+    if (!selectedReservation && !detailLoading && !detailError) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSelectedReservation(null);
+        setDetailError(null);
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [detailError, detailLoading, selectedReservation]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
 
@@ -128,7 +154,7 @@ export function ReservationsPage() {
       <h1>Gestión de reservaciones</h1>
 
       {successMessage ? (
-        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+        <div role="status" aria-live="polite" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
           {successMessage}
         </div>
       ) : null}
@@ -160,11 +186,11 @@ export function ReservationsPage() {
         </div>
       </div>
 
-      {error ? <p className="error-message">{error}</p> : null}
+      {error ? <p className="error-message" role="alert">{error}</p> : null}
 
       {isLoading ? (
         <div className="page-state compact-state">
-          <h1>Cargando reservas...</h1>
+          <h1 role="status" aria-live="polite">Cargando reservas...</h1>
         </div>
       ) : null}
 
@@ -180,7 +206,10 @@ export function ReservationsPage() {
           {reservations.map((reservation) => (
             <article key={reservation.id} className="package-card">
               <div className="package-card-header">
-                <span className="package-badge">
+                <span
+                  className={`package-badge ${reservation.paymentStatus === 'CANCELLED' ? 'reservation-status-cancelled' : reservation.paymentStatus === 'PAID' ? 'reservation-status-paid' : 'reservation-status-pending'}`}
+                  aria-label={`Estado de reserva: ${paymentStatusLabels[reservation.paymentStatus as PaymentStatusFilter] ?? reservation.paymentStatus}`}
+                >
                   {paymentStatusLabels[reservation.paymentStatus as PaymentStatusFilter] ?? reservation.paymentStatus}
                 </span>
               </div>
@@ -215,10 +244,13 @@ export function ReservationsPage() {
               <div className="mt-5 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-blue-200 hover:text-blue-600"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-teal-200 hover:text-teal-700"
                   title="Ver detalle"
                   aria-label="Ver detalle"
-                  onClick={() => void handleViewReservation(reservation.id)}
+                  onClick={(event) => {
+                    detailTriggerRef.current = event.currentTarget;
+                    void handleViewReservation(reservation.id);
+                  }}
                 >
                   <EyeIcon />
                 </button>
@@ -303,14 +335,43 @@ export function ReservationsPage() {
         </div>
       ) : null}
 
-      {selectedReservation || detailLoading ? (
+      {selectedReservation || detailLoading || detailError ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reservation-detail-title"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
+            onKeyDown={(event) => {
+              if (event.key !== 'Tab') return;
+              const focusable = event.currentTarget.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+              );
+              if (focusable.length === 0) {
+                event.preventDefault();
+                return;
+              }
+
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+              }
+            }}
+          >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-2xl font-bold text-slate-900">Detalle de reserva</h2>
+              <h2 id="reservation-detail-title" className="text-2xl font-bold text-slate-900">
+                Detalle de reserva
+              </h2>
               <button
                 type="button"
                 className="secondary-button"
+                aria-label="Cerrar detalle de reserva"
+                autoFocus
                 onClick={() => setSelectedReservation(null)}
               >
                 Cerrar
@@ -321,7 +382,7 @@ export function ReservationsPage() {
               <div className="py-10 text-center text-slate-600">Cargando detalle...</div>
             ) : null}
 
-            {detailError ? <p className="error-message">{detailError}</p> : null}
+            {detailError ? <p className="error-message" role="alert">{detailError}</p> : null}
 
             {selectedReservation ? (
               <div className="grid gap-3 md:grid-cols-2">
