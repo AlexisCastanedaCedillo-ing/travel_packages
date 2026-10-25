@@ -21,6 +21,8 @@
     "test:e2e": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
     "migration:generate": "node --require ts-node/register --require tsconfig-paths/register ./node_modules/typeorm/cli.js -d ormconfig.ts migration:generate src/database/migrations/generated",
     "migration:run": "node --require ts-node/register --require tsconfig-paths/register ./node_modules/typeorm/cli.js -d ormconfig.ts migration:run",
+    "migration:run:prod": "node ./node_modules/typeorm/cli.js -d dist/database/data-source.js migration:run",
+    "seed:run:prod": "node dist/database/seeds/seed.js",
     "migration:revert": "node --require ts-node/register --require tsconfig-paths/register ./node_modules/typeorm/cli.js -d ormconfig.ts migration:revert",
     "schema:log": "node --require ts-node/register --require tsconfig-paths/register ./node_modules/typeorm/cli.js -d ormconfig.ts schema:log",
     "seed:run": "node --require ts-node/register --require tsconfig-paths/register src/database/seeds/seed.ts",
