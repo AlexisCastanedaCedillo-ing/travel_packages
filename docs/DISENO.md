@@ -350,8 +350,7 @@ explicar cómo responden a los requisitos de la prueba técnica.
     notificar una transacción que haya sido revertida, pero existe una
     ventana en la que la base de datos puede confirmar la reservación y
     la publicación fallar. Para una solución más robusta podría
-    incorporarse el patrón Transactional Outbox; se considera una mejora
-    opcional salvo que el alcance final lo exija.
+    incorporarse el patrón Transactional Outbox.
 
 ## 7. Idempotencia del worker
 
