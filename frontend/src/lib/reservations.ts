@@ -38,6 +38,11 @@ export async function listReservations(
   return data;
 }
 
+export async function getReservationById(id: string): Promise<ReservationItem> {
+  const { data } = await api.get<ReservationItem>(`/reservations/${id}`);
+  return data;
+}
+
 export async function createReservation(
   payload: ReservationFormPayload,
 ): Promise<ReservationItem> {

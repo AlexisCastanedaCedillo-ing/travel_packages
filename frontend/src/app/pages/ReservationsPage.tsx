@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import api from '../../lib/api';
-import { listPackages } from '../../lib/packages';
+import { Link, useLocation } from 'react-router-dom';
+import { getReservationById } from '../../lib/reservations';
 import { useAuthStore } from '../../store/authStore';
 import { useReservationsStore } from '../../store/reservationsStore';
-import type { PackageItem } from '../../types/package';
-import type { ReservationItem } from '../../types/reservation';
+import type { PaymentStatus, ReservationItem } from '../../types/reservation';
 
 const paymentStatusOptions = ['ALL', 'PENDING', 'PAID', 'CANCELLED'] as const;
 type PaymentStatusFilter = (typeof paymentStatusOptions)[number];
@@ -31,6 +30,7 @@ function EyeIcon() {
 }
 
 export function ReservationsPage() {
+  const location = useLocation();
   const { user } = useAuthStore();
   const {
     reservations,
@@ -40,22 +40,15 @@ export function ReservationsPage() {
     page,
     pageSize,
     fetchReservations,
-    createReservationForCurrentUser,
     updateReservationPaymentStatus,
   } = useReservationsStore();
 
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>('ALL');
-  const [packageOptions, setPackageOptions] = useState<PackageItem[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [form, setForm] = useState({
-    packageId: '',
-    travelerCount: 1,
-    customerId: '',
-  });
+  const [updatingReservationId, setUpdatingReservationId] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchReservations({
@@ -66,73 +59,29 @@ export function ReservationsPage() {
   }, [fetchReservations, pageSize, paymentStatusFilter]);
 
   useEffect(() => {
-    void listPackages({ page: 1, pageSize: 100 })
-      .then((result) => setPackageOptions(result.data))
-      .catch(() => setPackageOptions([]));
-  }, []);
+    const stateMessage =
+      location.state &&
+      typeof location.state === 'object' &&
+      'successMessage' in location.state
+        ? String(location.state.successMessage)
+        : null;
+
+    if (stateMessage) {
+      setSuccessMessage(stateMessage);
+    }
+  }, [location.state]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
-  const userCanManageCustomers = user?.role !== 'customer';
 
-  function handleFormChange(field: 'packageId' | 'travelerCount' | 'customerId', value: string | number) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
-
-  async function handleCreateReservation(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFormError(null);
-    setSuccessMessage(null);
-
-    if (!form.packageId) {
-      setFormError('Debes seleccionar un paquete para la reserva.');
-      return;
-    }
-
-    const travelerCount = Number(form.travelerCount);
-    if (!Number.isInteger(travelerCount) || travelerCount < 1) {
-      setFormError('La cantidad de viajeros debe ser al menos 1.');
-      return;
-    }
-
-    if (userCanManageCustomers && !form.customerId.trim()) {
-      setFormError('Debes indicar el ID del cliente para crear la reserva.');
-      return;
-    }
-
-    try {
-      await createReservationForCurrentUser({
-        packageId: form.packageId,
-        travelerCount,
-        ...(userCanManageCustomers ? { customerId: form.customerId.trim() } : {}),
-      });
-
-      setSuccessMessage('Reserva creada correctamente.');
-      setForm({ packageId: '', travelerCount: 1, customerId: '' });
-      void fetchReservations({
-        paymentStatus: paymentStatusFilter === 'ALL' ? undefined : paymentStatusFilter,
-        page: 1,
-        pageSize,
-      });
-    } catch {
-      // Error is surfaced in the store state.
-    }
-  }
-
-  async function handleStatusChange(id: string, nextStatus: string) {
-    if (!nextStatus || nextStatus === 'ALL') {
-      return;
-    }
-
-    const label = paymentStatusLabels[nextStatus as PaymentStatusFilter] ?? nextStatus;
+  async function handleStatusChange(id: string, nextStatus: PaymentStatus) {
+    const label = paymentStatusLabels[nextStatus];
     if (!window.confirm(`¿Deseas cambiar el estado de la reserva "${id.slice(0, 8)}" a "${label}"?`)) {
       return;
     }
 
+    setUpdatingReservationId(id);
     try {
-      await updateReservationPaymentStatus(id, nextStatus as 'PENDING' | 'PAID' | 'CANCELLED');
+      await updateReservationPaymentStatus(id, nextStatus);
       setSuccessMessage('Estado de la reserva actualizado correctamente.');
       void fetchReservations({
         paymentStatus: paymentStatusFilter === 'ALL' ? undefined : paymentStatusFilter,
@@ -141,6 +90,8 @@ export function ReservationsPage() {
       });
     } catch {
       // Error is surfaced in the store state.
+    } finally {
+      setUpdatingReservationId(null);
     }
   }
 
@@ -150,8 +101,8 @@ export function ReservationsPage() {
     setSelectedReservation(null);
 
     try {
-      const { data } = await api.get<ReservationItem>(`/reservations/${id}`);
-      setSelectedReservation(data);
+      const reservation = await getReservationById(id);
+      setSelectedReservation(reservation);
     } catch (error) {
       setDetailError(
         error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
@@ -186,6 +137,9 @@ export function ReservationsPage() {
         <p className="page-description">
           {total > 0 ? `Mostrando ${reservations.length} de ${total} reservas.` : 'Consulta de reservas del sistema.'}
         </p>
+        <Link to="/reservations/new" className="primary-button link-button">
+          + Crear reserva
+        </Link>
       </div>
 
       <div className="filters-card" style={{ marginBottom: '20px' }}>
@@ -205,55 +159,6 @@ export function ReservationsPage() {
           </label>
         </div>
       </div>
-
-      {userCanManageCustomers ? (
-        <form className="package-form" onSubmit={handleCreateReservation} style={{ marginBottom: '24px' }}>
-          <div className="filter-grid">
-            <label>
-              <span>Paquete</span>
-              <select
-                value={form.packageId}
-                onChange={(event) => handleFormChange('packageId', event.target.value)}
-              >
-                <option value="">Selecciona un paquete</option>
-                {packageOptions.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>
-                    {pkg.destination} · {pkg.startDate}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>Cantidad de viajeros</span>
-              <input
-                type="number"
-                min="1"
-                value={form.travelerCount}
-                onChange={(event) => handleFormChange('travelerCount', Number(event.target.value || 1))}
-              />
-            </label>
-
-            <label>
-              <span>ID del cliente</span>
-              <input
-                type="text"
-                value={form.customerId}
-                onChange={(event) => handleFormChange('customerId', event.target.value)}
-                placeholder="uuid del cliente"
-              />
-            </label>
-          </div>
-
-          {formError ? <p className="error-message" style={{ marginTop: '16px' }}>{formError}</p> : null}
-
-          <div className="form-actions">
-            <button type="submit" className="primary-button small-button">
-              Guardar reserva
-            </button>
-          </div>
-        </form>
-      ) : null}
 
       {error ? <p className="error-message">{error}</p> : null}
 
@@ -318,20 +223,28 @@ export function ReservationsPage() {
                   <EyeIcon />
                 </button>
 
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <span>Estado</span>
-                  <select
-                    value={reservation.paymentStatus}
-                    onChange={(event) => void handleStatusChange(reservation.id, event.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800 outline-none"
-                  >
-                    {(user?.role === 'customer' ? ['CANCELLED'] : ['PENDING', 'PAID', 'CANCELLED']).map((status) => (
-                      <option key={status} value={status}>
-                        {paymentStatusLabels[status as PaymentStatusFilter]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {reservation.paymentStatus !== 'CANCELLED' ? (
+                  <>
+                    {user?.role !== 'customer' && reservation.paymentStatus === 'PENDING' ? (
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => void handleStatusChange(reservation.id, 'PAID')}
+                        disabled={updatingReservationId === reservation.id}
+                      >
+                        {updatingReservationId === reservation.id ? 'Actualizando...' : 'Marcar pagada'}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="danger-button"
+                      onClick={() => void handleStatusChange(reservation.id, 'CANCELLED')}
+                      disabled={updatingReservationId === reservation.id}
+                    >
+                      {updatingReservationId === reservation.id ? 'Actualizando...' : 'Cancelar reserva'}
+                    </button>
+                  </>
+                ) : null}
               </div>
             </article>
           ))}

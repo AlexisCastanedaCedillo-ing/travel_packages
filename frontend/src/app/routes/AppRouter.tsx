@@ -9,6 +9,7 @@ import { NotFoundPage } from '../pages/NotFoundPage';
 import { PackageDetailPage } from '../pages/PackageDetailPage';
 import { PackageFormPage } from '../pages/PackageFormPage';
 import { PackagesPage } from '../pages/PackagesPage';
+import { ReservationCreatePage } from '../pages/ReservationCreatePage';
 import { ReservationsPage } from '../pages/ReservationsPage';
 
 export function AppRouter() {
@@ -35,6 +36,7 @@ export function AppRouter() {
           </Route>
 
           <Route element={<RoleRoute allowedRoles={['admin', 'agent', 'customer']} />}>
+            <Route path="/reservations/new" element={<ReservationCreatePage />} />
             <Route path="/reservations" element={<ReservationsPage />} />
           </Route>
         </Route>
