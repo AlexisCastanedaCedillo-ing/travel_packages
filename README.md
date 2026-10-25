@@ -27,19 +27,34 @@ El backend NestJS lee `backend\.env` y al iniciar verifica sus conexiones con Po
 
 Con la API iniciada, Swagger está disponible en `http://localhost:3000/docs` y
 `GET http://localhost:3000/health` comprueba PostgreSQL, Redis y RabbitMQ. Los
-endpoints de paquetes y reservaciones requieren un JWT obtenido con
-`POST /auth/login`.
+endpoints de paquetes (`/paquetes`) y reservaciones (`/reservaciones`) requieren
+un JWT obtenido con `POST /auth/login`.
 
 ### Seed local
 
-Es necesario declarar las siguientes variables primero en el .env
+Antes de ejecutar la semilla, configura estas variables en `backend\.env`.
+Puedes usar estas cuentas ficticias para desarrollo y pruebas locales:
 
-Llena las siguientes variables antes de correr la seed `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`,
-`SEED_AGENT_EMAIL`, `SEED_AGENT_PASSWORD`, `SEED_CUSTOMER_EMAIL` y
-`SEED_CUSTOMER_PASSWORD` en `backend\.env`. 
+```dotenv
+SEED_ADMIN_EMAIL=admin@viajeslili.test
+SEED_ADMIN_PASSWORD=AdminDemo2026!
+SEED_AGENT_EMAIL=agente@viajeslili.test
+SEED_AGENT_PASSWORD=AgentDemo2026!
+SEED_CUSTOMER_EMAIL=cliente@viajeslili.test
+SEED_CUSTOMER_PASSWORD=ClienteDemo2026!
+```
 
-IMPORTANTE: Los valores de estos usuarios son solo para las prueba y no ingreses datos reales de una persona.
-Y las contraseñas deben tener al menos 12 caracteres. 
+Las credenciales de inicio de sesión son:
+
+| Rol | Email | Contraseña |
+|---|---|---|
+| Administrador | `admin@viajeslili.test` | `AdminDemo2026!` |
+| Agente | `agente@viajeslili.test` | `AgentDemo2026!` |
+| Cliente | `cliente@viajeslili.test` | `ClienteDemo2026!` |
+
+Son datos de prueba, no uses información personal ni estas credenciales en
+producción. Las contraseñas deben tener al menos 12 caracteres. Si cambias los
+valores en `backend\.env`, usa los nuevos valores para iniciar sesión.
 
 Una vez hecho esto desde `travel_packages\backend`, ejecuta:
 

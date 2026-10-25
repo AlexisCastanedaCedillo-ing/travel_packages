@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { loginSchema, type LoginFormValues } from '../../lib/validators/auth';
 
 const defaultValues: LoginFormValues = {
-  email: '@example.com',
+  email: '@viajeslili.com',
   password: '',
 };
 

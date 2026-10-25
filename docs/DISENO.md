@@ -263,213 +263,118 @@ flowchart LR
 **Propósito:** Documentar las principales decisiones de arquitectura y
 explicar cómo responden a los requisitos de la prueba técnica.
 
-## 1. Stack tecnológico y organización del backend
+## 1. Stack tecnológico, persistencia y acceso a datos
 
--   **Decisión:** Utilizar React con TypeScript para el frontend y
-    NestJS con TypeScript para la API.
--   **Justificación:** TypeScript aporta tipado estático en ambas capas,
-    mientras que NestJS permite organizar el backend en módulos y
-    separar responsabilidades como autenticación, usuarios, paquetes y
-    reservaciones.
--   **Aplicación:** Mantener controladores, servicios, DTOs y módulos
-    con responsabilidades claras, facilitando pruebas y mantenimiento.
+- **Decisión:** Utilizar React con TypeScript para el frontend, NestJS con
+  TypeScript para la API y PostgreSQL como fuente de verdad, accedido mediante
+  TypeORM y migraciones.
+- **Justificación:** TypeScript aporta tipado estático en ambas capas y NestJS
+  permite separar responsabilidades en módulos. PostgreSQL ofrece la
+  consistencia transaccional que requieren las reservaciones y la disponibilidad;
+  TypeORM permite definir entidades, relaciones y migraciones.
+- **Aplicación:** Organizar el backend en controladores, servicios, DTOs y
+  módulos. Gestionar cambios de cupo y reservaciones dentro de transacciones,
+  usando siempre el `EntityManager` transaccional. Versionar el esquema con
+  migraciones y no habilitar `synchronize: true` en entornos de entrega.
 
-## 2. PostgreSQL como fuente de verdad
+## 2. Control de concurrencia para evitar sobreventa
 
--   **Decisión:** Utilizar PostgreSQL como almacenamiento persistente
-    principal para usuarios, paquetes y reservaciones.
--   **Justificación:** Las reservaciones y la disponibilidad de lugares
-    requieren consistencia transaccional. La base de datos debe ser la
-    autoridad definitiva sobre el cupo disponible y el estado de cada
-    reservación.
--   **Aplicación:** Gestionar los cambios de cupo y la creación o
-    cancelación de reservaciones dentro de transacciones. Utilizar
-    migraciones para versionar los cambios del esquema y evitar
-    `synchronize: true` en entornos de entrega.
+- **Decisión:** Bloquear la fila del paquete durante la validación y actualización
+  de disponibilidad, mediante una transacción y un bloqueo pesimista de escritura
+  (`SELECT ... FOR UPDATE`).
+- **Justificación:** El bloqueo serializa las solicitudes concurrentes sobre el
+  mismo paquete y permite volver a validar el cupo antes de descontarlo.
+- **Aplicación:** Dentro de una misma transacción, bloquear el paquete, comprobar
+  disponibilidad, crear la reservación y descontar los lugares. Si no hay cupo,
+  no modificar los datos y responder con `409 Conflict`. Verificar con pruebas
+  que el cupo nunca sea negativo ni se sobrevendan lugares.
 
-## 3. TypeORM para acceso a datos
+## 3. Redis para caché, no para controlar inventario
 
--   **Decisión:** Utilizar TypeORM como ORM para conectar NestJS con
-    PostgreSQL.
--   **Justificación:** Permite definir entidades, relaciones y
-    migraciones, además de ejecutar operaciones dentro de transacciones.
--   **Aplicación:** En una transacción, todas las consultas y escrituras
-    relacionadas deben utilizar el `EntityManager` transaccional
-    proporcionado por TypeORM, evitando mezclar operaciones
-    transaccionales con el administrador global.
+- **Decisión:** Cachear temporalmente con TTL los resultados frecuentes del
+  listado de paquetes.
+- **Justificación:** Redis reduce lecturas repetidas a PostgreSQL, pero sus datos
+  pueden estar desactualizados y no deben decidir si una reservación puede
+  confirmarse.
+- **Aplicación:** Consultar PostgreSQL ante un cache miss e invalidar el listado
+  cuando se cree o edite un paquete, o cambie su disponibilidad por una
+  reservación o cancelación. La validación final del cupo siempre se hace contra
+  PostgreSQL dentro de la transacción.
 
-## 4. Control de concurrencia para evitar sobreventa
+## 4. RabbitMQ y procesamiento asíncrono mediante un worker
 
--   **Decisión:** Bloquear la fila del paquete durante la validación y
-    actualización de disponibilidad mediante una transacción y un
-    bloqueo pesimista de escritura, por ejemplo `SELECT ... FOR UPDATE`.
--   **Justificación:** Dos solicitudes simultáneas podrían leer el mismo
-    cupo disponible e intentar reservar los mismos lugares. El bloqueo
-    serializa las operaciones que afectan esa fila y permite volver a
-    validar el cupo antes de descontarlo.
--   **Aplicación:** Dentro de la transacción, obtener el paquete con el
-    bloqueo, comprobar que el cupo sea suficiente, crear la reservación
-    y actualizar la disponibilidad. Si no hay cupo, rechazar la
-    operación sin modificar los datos y responder con un conflicto HTTP
-    `409`.
--   **Consideración:** El bloqueo debe ejecutarse dentro de una
-    transacción real y sobre la misma conexión transaccional. La
-    estrategia debe probarse con solicitudes concurrentes para confirmar
-    que el cupo nunca quede negativo ni se sobrevendan lugares.
+- **Decisión:** Publicar el evento `reserva.creada` en RabbitMQ para que lo
+  procese un worker independiente de la API.
+- **Justificación:** Desacoplar la persistencia de la reservación del
+  procesamiento de notificaciones evita ejecutar ambas tareas dentro de la
+  misma petición HTTP.
+- **Aplicación:** Confirmar la transacción de PostgreSQL antes de publicar.
+  El worker registra una notificación simulada y confirma el mensaje con ACK
+  después de persistirla. Existe una ventana en la que la reserva puede quedar
+  confirmada aunque falle la publicación; un patrón Transactional Outbox sería
+  una alternativa para mejorar esa garantía.
 
-## 5. Redis para caché, no para controlar inventario
+## 5. Idempotencia del worker
 
--   **Decisión:** Utilizar Redis para almacenar temporalmente resultados
-    de consultas frecuentes del listado de paquetes, con un TTL
-    definido.
--   **Justificación:** El caché puede reducir lecturas repetidas a
-    PostgreSQL y mejorar el tiempo de respuesta. Sin embargo, su
-    contenido puede estar desactualizado y no debe utilizarse como
-    fuente definitiva para confirmar una reservación.
--   **Aplicación:** Ante una consulta, revisar primero el caché y
-    consultar PostgreSQL si no existe una entrada válida. Invalidar las
-    entradas relevantes cuando se cree o edite un paquete o cambie la
-    disponibilidad por una reservación o cancelación.
--   **Consideración:** La operación de creación de reservaciones siempre
-    valida el cupo contra PostgreSQL dentro de la transacción, aunque el
-    listado almacenado en Redis muestre disponibilidad.
+- **Decisión:** Hacer idempotente el procesamiento de `reserva.creada` mediante
+  un identificador único del evento respaldado por una restricción en PostgreSQL.
+- **Justificación:** RabbitMQ puede entregar de nuevo un mensaje si el worker
+  falla antes de confirmar el ACK; esos reintentos no deben duplicar
+  notificaciones.
+- **Aplicación:** Registrar el evento de forma atómica, por ejemplo con
+  `INSERT ... ON CONFLICT DO NOTHING`, y confirmar el mensaje solo después de
+  guardar el resultado. La clave de idempotencia debe identificar de forma
+  inequívoca el efecto que se procesa.
 
-## 6. RabbitMQ y procesamiento asíncrono mediante un worker
+## 6. Autenticación, autorización y validación de solicitudes
 
--   **Decisión:** Utilizar RabbitMQ para distribuir el evento
-    `reserva.creada` a un worker independiente de la API.
--   **Justificación:** Separar el registro de la reservación del
-    procesamiento de notificaciones evita acoplar ambas tareas en la
-    misma petición HTTP y permite procesar el evento de manera
-    independiente.
--   **Aplicación:** La API confirma la transacción de PostgreSQL y
-    después publica el evento. El worker consume el mensaje, registra
-    una notificación simulada y confirma el procesamiento mediante ACK
-    cuando la operación concluye correctamente.
--   **Consideración de fiabilidad:** Publicar después del `COMMIT` evita
-    notificar una transacción que haya sido revertida, pero existe una
-    ventana en la que la base de datos puede confirmar la reservación y
-    la publicación fallar. Para una solución más robusta podría
-    incorporarse el patrón Transactional Outbox.
+- **Decisión:** Usar JWT para autenticar y aplicar autorización por rol y
+  propiedad del recurso; validar entradas con DTOs y `class-validator`.
+- **Justificación:** Los roles admin, agente y cliente tienen permisos
+  distintos. La validación y los errores HTTP consistentes ayudan a proteger
+  los datos y a que los clientes de la API reaccionen de forma predecible.
+- **Aplicación:** Comprobar permisos y propiedad de las reservaciones; responder
+  `401` si la autenticación falta o no es válida, `403` si el usuario no tiene
+  permiso, `400` ante datos inválidos, `404` ante recursos inexistentes y `409`
+  ante conflictos como falta de cupo. Almacenar contraseñas con bcrypt,
+  configurar CORS explícitamente, limitar intentos de inicio de sesión y no
+  exponer trazas ni datos sensibles en errores de producción.
 
-## 7. Idempotencia del worker
+## 7. Observabilidad y entorno reproducible
 
--   **Decisión:** Hacer que el procesamiento de `reserva.creada` sea
-    idempotente mediante un identificador único del evento o una clave
-    de negocio apropiada, respaldada por una restricción única en
-    PostgreSQL.
--   **Justificación:** RabbitMQ puede volver a entregar un mensaje si el
-    worker falla o pierde la conexión antes de confirmar el ACK. El
-    procesamiento debe tolerar entregas repetidas sin crear
-    notificaciones duplicadas.
--   **Aplicación:** Registrar el evento procesado o la notificación
-    usando una operación atómica, por ejemplo
-    `INSERT ... ON CONFLICT DO NOTHING`, y confirmar el mensaje solo
-    después de que el resultado se haya guardado correctamente.
--   **Consideración:** La clave de idempotencia debe representar
-    inequívocamente el evento que se procesa. Si se permiten varios
-    tipos de notificación por reservación, una restricción única solo
-    por `reservation_id` podría ser demasiado restrictiva; debe
-    definirse la clave según el modelo real.
+- **Decisión:** Exponer `GET /health`, documentar la API con OpenAPI/Swagger y
+  ejecutar frontend, API, worker, PostgreSQL, Redis y RabbitMQ mediante Docker
+  Compose.
+- **Justificación:** Los health checks y logs con contexto facilitan el
+  diagnóstico; Swagger facilita probar la API y Compose reduce diferencias entre
+  entornos.
+- **Aplicación:** Comprobar PostgreSQL, Redis y RabbitMQ en el health check;
+  incluir identificadores de solicitud en logs sin registrar secretos. Definir
+  health checks y dependencias de inicio, persistir PostgreSQL en un volumen,
+  gestionar configuración con variables de entorno y mantener un `.env.example`
+  sin secretos reales. Dentro de Compose, conectar los servicios mediante sus
+  nombres de servicio.
 
-## 8. Autenticación y autorización por roles
+## 8. Estrategia de pruebas
 
--   **Decisión:** Utilizar JWT para autenticar solicitudes y controles
-    de autorización basados en roles y propiedad del recurso.
--   **Justificación:** La prueba distingue entre administradores,
-    agentes y clientes. Autenticarse no significa tener permiso para
-    realizar cualquier acción: la API debe comprobar tanto el rol como
-    el acceso al recurso solicitado.
--   **Aplicación:** Proteger las rutas correspondientes y verificar que
-    un cliente solo pueda consultar o cancelar sus propias
-    reservaciones, mientras que los roles autorizados puedan realizar
-    las operaciones administrativas definidas. Responder `401` cuando
-    falte una autenticación válida y `403` cuando un usuario autenticado
-    no tenga permiso.
--   **Seguridad complementaria:** Validar entradas mediante DTOs y
-    `class-validator`, almacenar contraseñas con un algoritmo de hash
-    adecuado como bcrypt, configurar CORS explícitamente y limitar
-    intentos de inicio de sesión.
-
-## 9. Validación de datos y respuestas HTTP consistentes
-
--   **Decisión:** Validar los datos entrantes en la API y centralizar el
-    manejo de errores.
--   **Justificación:** La validación temprana reduce datos inválidos y
-    facilita que el frontend interprete los errores de forma predecible.
--   **Aplicación:** Usar DTOs y validaciones para los cuerpos y
-    parámetros; responder con códigos HTTP adecuados, incluyendo `400`
-    para datos inválidos, `401` para solicitudes no autenticadas, `403`
-    para acceso prohibido, `404` para recursos inexistentes y `409` para
-    conflictos como falta de cupo.
--   **Seguridad:** No exponer trazas internas ni detalles sensibles en
-    respuestas de error de producción.
-
-## 10. Health checks, logging y documentación de API
-
--   **Decisión:** Exponer `GET /health`, generar logs estructurados con
-    un identificador de solicitud y publicar documentación
-    OpenAPI/Swagger.
--   **Justificación:** Estas herramientas facilitan verificar el estado
-    de los servicios, rastrear errores entre componentes y probar la API
-    durante la evaluación.
--   **Aplicación:** El health check debe comprobar las dependencias
-    relevantes ---PostgreSQL, Redis y RabbitMQ--- e indicar un estado
-    degradado o no saludable cuando corresponda. Los logs deben incluir
-    contexto útil sin registrar contraseñas, tokens ni datos sensibles.
-    Swagger debe describir endpoints, DTOs, autenticación y respuestas
-    de error.
-
-## 11. Contenedores y entorno reproducible
-
--   **Decisión:** Utilizar Docker Compose para ejecutar frontend, API,
-    worker, PostgreSQL, Redis y RabbitMQ.
--   **Justificación:** Un entorno declarado como código reduce
-    diferencias entre máquinas y permite levantar la solución con un
-    flujo reproducible.
--   **Aplicación:** Definir health checks y dependencias de inicio,
-    persistir los datos de PostgreSQL mediante un volumen, gestionar la
-    configuración mediante variables de entorno y proporcionar un
-    archivo `.env.example` sin secretos reales. La configuración de
-    entrega debe incluir migraciones y datos semilla cuando sean
-    necesarios.
--   **Consideración:** Dentro de la red de Compose, los servicios deben
-    conectarse mediante los nombres de servicio definidos en Compose, no
-    mediante `localhost`.
-
-## 12. Estrategia de pruebas
-
--   **Decisión:** Combinar pruebas unitarias de servicios de dominio con
-    pruebas del frontend y pruebas de integración o extremo a extremo
-    para los flujos críticos.
--   **Justificación:** La lógica de reservaciones contiene reglas de
-    negocio y condiciones de concurrencia que deben verificarse más allá
-    de que la aplicación compile.
--   **Aplicación:** Cubrir al menos la creación de reservaciones con
-    cupo disponible, el rechazo por cupo insuficiente, la cancelación y
-    restitución del cupo, la autorización por propiedad de la
-    reservación y el procesamiento idempotente de mensajes. Probar
-    también el comportamiento de filtros y formularios en el frontend,
-    respetando los mínimos definidos en la prueba técnica.
+- **Decisión:** Combinar pruebas unitarias de servicios de dominio con pruebas
+  del frontend y pruebas de integración o extremo a extremo para flujos críticos.
+- **Justificación:** Las reglas de reservación y concurrencia requieren
+  verificarse más allá de que la aplicación compile.
+- **Aplicación:** Cubrir creación con cupo disponible, rechazo por cupo
+  insuficiente, cancelación y restitución del cupo, autorización por propiedad y
+  procesamiento idempotente. Probar también filtros y formularios del frontend,
+  respetando los mínimos definidos en la prueba técnica.
 
 ## Resumen de decisiones
 
--   **NestJS y React con TypeScript:** separar frontend y API con tipado
-    compartido como enfoque de desarrollo.
--   **PostgreSQL:** fuente de verdad para datos y disponibilidad.
--   **TypeORM y migraciones:** acceso estructurado a datos y evolución
-    controlada del esquema.
--   **Transacciones y bloqueo de fila:** evitar sobreventa bajo
-    concurrencia.
--   **Redis:** acelerar listados; nunca autorizar reservas basándose
-    únicamente en el caché.
--   **RabbitMQ y worker:** desacoplar el procesamiento de
-    notificaciones.
--   **Idempotencia:** evitar efectos duplicados ante la redelivery de
-    mensajes.
--   **JWT, roles y propiedad del recurso:** proteger operaciones y
-    datos.
--   **Health checks, logs y Swagger:** facilitar diagnóstico,
-    trazabilidad y evaluación.
--   **Docker Compose y pruebas automatizadas:** mejorar reproducibilidad
-    y verificar los flujos críticos.
+- **Stack, persistencia y acceso a datos:** React, NestJS, PostgreSQL y TypeORM
+  con migraciones.
+- **Concurrencia:** transacciones y bloqueo de fila para evitar sobreventa.
+- **Caché:** Redis acelera listados, pero no decide la disponibilidad real.
+- **Mensajería:** RabbitMQ y worker desacoplan las notificaciones.
+- **Idempotencia:** los reintentos no duplican efectos.
+- **Seguridad y validación:** JWT, roles, propiedad del recurso y DTOs.
+- **Operación:** health checks, logs, Swagger y Compose favorecen diagnóstico y
+  reproducibilidad.
+- **Pruebas:** verifican reglas críticas del backend y frontend.
