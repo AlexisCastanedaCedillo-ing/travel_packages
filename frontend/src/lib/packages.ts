@@ -31,19 +31,19 @@ export async function listPackages(
   params: Record<string, string | number | undefined> = {},
 ): Promise<PackageListResponse> {
   const sanitizedParams = sanitizeQueryParams(params);
-  const { data } = await api.get<PackageListResponse>('/packages', {
+  const { data } = await api.get<PackageListResponse>('/paquetes', {
     params: sanitizedParams,
   });
   return data;
 }
 
 export async function getPackageById(id: string): Promise<PackageItem> {
-  const { data } = await api.get<PackageItem>(`/packages/${id}`);
+  const { data } = await api.get<PackageItem>(`/paquetes/${id}`);
   return data;
 }
 
 export async function createPackage(payload: PackageFormPayload): Promise<PackageItem> {
-  const { data } = await api.post<PackageItem>('/packages', payload);
+  const { data } = await api.post<PackageItem>('/paquetes', payload);
   return data;
 }
 
@@ -51,10 +51,10 @@ export async function updatePackage(
   id: string,
   payload: Partial<PackageFormPayload>,
 ): Promise<PackageItem> {
-  const { data } = await api.patch<PackageItem>(`/packages/${id}`, payload);
+  const { data } = await api.patch<PackageItem>(`/paquetes/${id}`, payload);
   return data;
 }
 
 export async function deletePackage(id: string): Promise<void> {
-  await api.delete(`/packages/${id}`);
+  await api.delete(`/paquetes/${id}`);
 }

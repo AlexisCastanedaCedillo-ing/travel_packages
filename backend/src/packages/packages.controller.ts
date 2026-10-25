@@ -20,7 +20,8 @@ import { ListPackagesDto } from './dto/list-packages.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 import { PackagesService } from './packages.service';
 
-@Controller('packages')
+// Although the routes are usually defined in English, they are kept in Spanish to adhere to the technical specifications.
+@Controller('paquetes')
 @ApiTags('packages')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)

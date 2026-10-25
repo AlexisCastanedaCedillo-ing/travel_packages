@@ -21,7 +21,8 @@ import { ListReservationsDto } from './dto/list-reservations.dto';
 import { UpdateReservationStatusDto } from './dto/update-reservation-status.dto';
 import { ReservationsService } from './reservations.service';
 
-@Controller('reservations')
+// Although the routes are usually defined in English, they are kept in Spanish to adhere to the technical specifications.
+@Controller('reservaciones')
 @ApiTags('reservations')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
