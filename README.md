@@ -8,6 +8,32 @@ React, NestJS, PostgreSQL, Redis y RabbitMQ con un worker de notificaciones.
 - Docker Desktop con Docker Compose y WSL 2 (Windows), o Docker Engine y el
   plugin Docker Compose (Linux).
 - Git para obtener el proyecto.
+- Para desarrollo local sin contenedores de aplicacion: Node.js y npm
+  compatibles con los lockfiles del backend y frontend.
+
+### Preparacion en Windows (Docker Desktop + WSL 2)
+
+1. Instala e inicia Docker Desktop.
+2. En **Settings > General**, habilita **Use the WSL 2 based engine**.
+3. En **Settings > Resources > WSL Integration**, habilita la distribucion
+   Linux que vayas a usar. Tambien puedes ejecutar los comandos desde PowerShell.
+4. Abre PowerShell en `travel_packages` y confirma que Docker responde:
+
+```powershell
+docker --version
+docker compose version
+```
+
+### Preparacion en Linux
+
+Instala e inicia Docker Engine y el plugin Docker Compose. El usuario debe
+tener permisos para acceder al daemon de Docker. Desde `travel_packages`,
+confirma la instalacion:
+
+```bash
+docker --version
+docker compose version
+```
 
 ## Inicio completo con Docker Compose
 
@@ -152,6 +178,41 @@ revisa estilo/problemas estaticos, test ejecuta las pruebas automatizadas y
 build compila la aplicacion. El build Docker valida las imagenes del API,
 worker y frontend sin publicarlas.
 
+### Ejecutar pruebas y generar cobertura
+
+Las pruebas unitarias del backend y del frontend se ejecutan por separado. En
+Windows, abre PowerShell desde `travel_packages` y usa:
+
+```powershell
+Set-Location backend
+npm ci
+npm test -- --runInBand
+npm run test:cov -- --runInBand
+
+Set-Location ..\frontend
+npm ci
+npm test
+```
+
+En Linux, desde `travel_packages`, usa:
+
+```bash
+cd backend
+npm ci
+npm test -- --runInBand
+npm run test:cov -- --runInBand
+
+cd ../frontend
+npm ci
+npm test
+```
+
+`npm run test:cov` genera el reporte de cobertura **del backend** en
+`backend/coverage/`; abre `backend/coverage/lcov-report/index.html` para
+consultarlo. Jest aplica el umbral configurado de al menos 60 % en sentencias y
+lineas. Actualmente Vitest ejecuta las pruebas del frontend, pero no tiene
+configurado un reporte de cobertura para ese proyecto.
+
 ### Como lo ejecuta el evaluador en GitHub
 
 1. El evaluador publica el repositorio en GitHub y abre la pestana **Actions**.
@@ -190,3 +251,16 @@ el archivo YAML.
 
 La API documentada en Swagger esta protegida segun roles para los recursos de
 paquetes y reservaciones; los usuarios inician sesion en `POST /auth/login`.
+
+## Pendiente y limitaciones conocidas
+
+- El worker guarda una notificacion simulada en la base de datos; no envia
+  correos ni mensajes a un servicio externo.
+- La publicacion del evento ocurre despues de confirmar la reservacion. Si
+  RabbitMQ falla en esa ventana, no hay un registro durable para reintentar la
+  publicacion; implementar un patron Transactional Outbox mejoraria esa
+  garantia.
+- El cambio de estatus para marcar como pagada no utiliza realmente una 
+  transaccion monetaria ni utiliza un servicio externo para realizar pagos,
+  para esta prueba se simula que los pagos concluyen correctamente y permite
+  el cambio de estatus manualmente.
